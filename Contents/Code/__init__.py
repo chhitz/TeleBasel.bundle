@@ -2,6 +2,9 @@ VIDEO_PREFIX = "/video/telebasel"
 
 NAME = L('Title')
 
+BASE_URL = "http://www.telebasel.ch/"
+SHOW_LIST_URL = BASE_URL + "de/sendungen/"
+
 ART  = 'art-default.jpg'
 ICON = 'icon-default.png'
 
@@ -22,18 +25,54 @@ def Start():
     
     HTTP.CacheTime = CACHE_1HOUR
 
- 
 
 def VideoMainMenu():
-
     dir = MediaContainer(viewGroup="InfoList")
-    dir.Append(Function(DirectoryItem(CallbackExample,"directory item title", subtitle="subtitle", summary="clicking on me will call CallbackExample", thumb=R(ICON), art=R(ART))))
-
+    shows = HTML.ElementFromURL(SHOW_LIST_URL)
+    for show in shows.xpath("//div[@class='ext-groups-showList']/div/div/div/a"):
+        Log(HTML.StringFromElement(show))
+        title = show.find("span").text
+        Log(title)
+        thumb = BASE_URL + show.find("img").get("src")
+        Log(thumb)
+        show_url = BASE_URL + show.get('href')
+        Log(show_url)
+        show_details = HTML.ElementFromURL(show_url).xpath("//div[@id='middle']/div[@id='content']//table//td")[0].findall("p")[1]
+        Log(HTML.StringFromElement(show_details))
+        summary = NoneStringHelper(show_details.text) + "\n\n" + NoneStringHelper(show_details.tail).strip()
+        Log(summary)
+        dir.Append(Function(DirectoryItem(ListEpisodes, title, summary=summary, thumb=thumb), url=show_url))
 
     return dir
 
-def CallbackExample(sender):
 
-    return MessageContainer("Not implemented","In real life, you'll make more than one callback,\nand you'll do something useful.\nsender.itemTitle=%s" % sender.itemTitle)
+def ListEpisodes(sender, url):
+    dir = MediaContainer(viewGroup="InfoList", title2=sender.itemTitle)
+    episodes = HTML.ElementFromURL(url)
+    for episode in episodes.xpath("//div[@id='right']//div[contains(@class, 'padding')]"):
+        Log(HTML.StringFromElement(episode))
+        title = episode.findtext("div/a") + ": " + episode.findtext("div/b")
+        Log(title)
+        thumb = BASE_URL + episode.find("div[@class='img']").get("style").split("(")[1].strip(")")
+        Log(thumb)
+        video_url = BASE_URL + episode.find("div/div/a").get("href")
+        Log(video_url)
+        dir.Append(Function(VideoItem(GetEpisodeVideo, title, thumb=thumb), url=video_url))
+    
+    if len(dir) == 0:
+        return MessageContainer("No episodes available", "There are no episodes for this show available.")
+    return dir
 
-  
+
+def GetEpisodeVideo(sender, url):
+    for show in HTML.ElementFromURL(url).xpath("//div[@class='ext-program']//script"):
+        jsVars = show.text
+        Log(jsVars)
+        if jsVars.find('jwplayer("movieplayer").setup') >= 0:
+            video_url = jsVars.split("file: ")[1].split('"')[1]
+            Log(video_url)
+            return Redirect(video_url)
+
+
+def NoneStringHelper(string):
+    return string if string else ""
