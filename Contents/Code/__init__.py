@@ -51,7 +51,7 @@ def ListEpisodes(sender, url):
     episodes = HTML.ElementFromURL(url)
     for episode in episodes.xpath("//div[@id='right']//div[contains(@class, 'padding')]"):
         Log(HTML.StringFromElement(episode))
-        title = episode.findtext("div/a") + ": " + episode.findtext("div/b")
+        title = episode.findtext("div/a")
         Log(title)
         thumb = BASE_URL + episode.find("div[@class='img']").get("style").split("(")[1].strip(")")
         Log(thumb)
