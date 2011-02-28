@@ -4,6 +4,7 @@ NAME = L('Title')
 
 BASE_URL = "http://www.telebasel.ch/"
 SHOW_LIST_URL = BASE_URL + "de/sendungen/"
+LIVE_URL = BASE_URL + "ajaxHandler.php?action=live"
 
 ART  = 'art-default.jpg'
 ICON = 'icon-default.png'
@@ -28,6 +29,25 @@ def Start():
 
 def VideoMainMenu():
     dir = MediaContainer(viewGroup="InfoList")
+    
+    liveInfo = HTTP.Request(LIVE_URL).content
+    Log(liveInfo)
+    for line in liveInfo.splitlines():
+        if line.find("***") >= 0:
+            continue
+        if line.find("SWFObject") >= 0:
+            width = line.split('", "')[2]
+            height = line.split('", "')[3]
+        if line.find("addVariable") >= 0:
+            url = line.split(',')[1][1:-7]
+            break
+            
+    playerUrl = "/".join(url.split('/')[0:4])
+    Log(playerUrl)
+    clip = "/".join(url.split('/')[4:])
+    Log(clip)
+    dir.Append(RTMPVideoItem(playerUrl, clip=clip, width=width, height=height, live=True, title="TeleBasel Live-TV", thumb=R(ICON)))
+    
     shows = HTML.ElementFromURL(SHOW_LIST_URL)
     for show in shows.xpath("//div[@class='ext-groups-showList']/div/div/div/a"):
         Log(HTML.StringFromElement(show))
