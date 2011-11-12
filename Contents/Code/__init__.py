@@ -57,11 +57,14 @@ def VideoMainMenu():
         Log(thumb)
         show_url = BASE_URL + show.get('href')
         Log(show_url)
-        show_details = HTML.ElementFromURL(show_url).xpath("//div[@id='middle']/div[@id='content']//table//td")[0].findall("p")[1]
-        Log(HTML.StringFromElement(show_details))
-        summary = NoneStringHelper(show_details.text) + "\n\n" + NoneStringHelper(show_details.tail).strip()
-        Log(summary)
-        dir.Append(Function(DirectoryItem(ListEpisodes, title, summary=summary, thumb=thumb), url=show_url))
+        try:
+            show_details = HTML.ElementFromURL(show_url).xpath("//div[@id='middle']/div[@id='content']//table//td")[0].findall("p")[1]
+            Log(HTML.StringFromElement(show_details))
+            summary = NoneStringHelper(show_details.text) + "\n\n" + NoneStringHelper(show_details.tail).strip()
+            Log(summary)
+            dir.Append(Function(DirectoryItem(ListEpisodes, title, summary=summary, thumb=thumb), url=show_url))
+        except:
+            pass
 
     return dir
 
@@ -71,15 +74,15 @@ def ListEpisodes(sender, url):
     episodes = HTML.ElementFromURL(url)
     for episode in episodes.xpath("//div[@id='right']//div[contains(@class, 'padding')]"):
         Log(HTML.StringFromElement(episode))
-        title = episode.findtext("div/a")
+        title = episode.findtext("div[@class='arrowblue']/a")
         try:
-            title += ": " + episode.findtext("div/a/span")
+            title += ": " + episode.findtext("div[@class='arrowblue']/a/span")
         except:
             pass
         Log(title)
-        thumb = BASE_URL + episode.find("div[@class='img']").get("style").split("(")[1].strip(")")
+        thumb = BASE_URL + episode.find("div/a/img").get("src")
         Log(thumb)
-        video_url = BASE_URL + episode.find("div/div/a").get("href")
+        video_url = BASE_URL + episode.find("div/a").get("href")
         Log(video_url)
         dir.Append(Function(VideoItem(GetEpisodeVideo, title, thumb=thumb), url=video_url))
     
